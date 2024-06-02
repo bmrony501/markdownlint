@@ -617,6 +617,24 @@ module.exports.addErrorContext = function addErrorContext(
   addError(onError, lineNumber, undefined, context, range, fixInfo);
 };
 
+// Adds an error object with context for a construct missing a blank link
+module.exports.addErrorContextForLine = (onError, lines, lineIndex, lineNumber) => {
+  const line = lines[lineIndex];
+  const quotePrefix = line.match(blockquotePrefixRe)[0].trimEnd();
+  module.exports.addErrorContext(
+    onError,
+    lineIndex + 1,
+    line.trim(),
+    null,
+    null,
+    null,
+    {
+      lineNumber,
+      "insertText": `${quotePrefix}\n`
+    }
+  );
+};
+
 /**
  * Returns an array of code block and span content ranges.
  *

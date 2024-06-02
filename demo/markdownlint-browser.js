@@ -629,6 +629,24 @@ module.exports.addErrorContext = function addErrorContext(
   addError(onError, lineNumber, undefined, context, range, fixInfo);
 };
 
+// Adds an error object with context for a construct missing a blank link
+module.exports.addErrorContextForLine = (onError, lines, lineIndex, lineNumber) => {
+  const line = lines[lineIndex];
+  const quotePrefix = line.match(blockquotePrefixRe)[0].trimEnd();
+  module.exports.addErrorContext(
+    onError,
+    lineIndex + 1,
+    line.trim(),
+    null,
+    null,
+    null,
+    {
+      lineNumber,
+      "insertText": `${quotePrefix}\n`
+    }
+  );
+};
+
 /**
  * Returns an array of code block and span content ranges.
  *
@@ -1673,7 +1691,8 @@ module.exports.fixableRuleNames = [
   "MD012", "MD014", "MD018", "MD019", "MD020", "MD021",
   "MD022", "MD023", "MD026", "MD027", "MD030", "MD031",
   "MD032", "MD034", "MD037", "MD038", "MD039", "MD044",
-  "MD047", "MD049", "MD050", "MD051", "MD053", "MD054"
+  "MD047", "MD049", "MD050", "MD051", "MD053", "MD054",
+  "MD058"
 ];
 module.exports.homepage = "https://github.com/DavidAnson/markdownlint";
 module.exports.version = "0.34.0";
@@ -5011,28 +5030,12 @@ module.exports = {
 
 
 
-const { addErrorContext, blockquotePrefixRe, isBlankLine } = __webpack_require__(/*! ../helpers */ "../helpers/helpers.js");
+const { addErrorContextForLine, isBlankLine } = __webpack_require__(/*! ../helpers */ "../helpers/helpers.js");
 const { filterByPredicate, nonContentTokens } = __webpack_require__(/*! ../helpers/micromark.cjs */ "../helpers/micromark.cjs");
 
 const isList = (token) => (
   (token.type === "listOrdered") || (token.type === "listUnordered")
 );
-const addBlankLineError = (onError, lines, lineIndex, lineNumber) => {
-  const line = lines[lineIndex];
-  const quotePrefix = line.match(blockquotePrefixRe)[0].trimEnd();
-  addErrorContext(
-    onError,
-    lineIndex + 1,
-    line.trim(),
-    null,
-    null,
-    null,
-    {
-      lineNumber,
-      "insertText": `${quotePrefix}\n`
-    }
-  );
-};
 
 // eslint-disable-next-line jsdoc/valid-types
 /** @type import("./markdownlint").Rule */
@@ -5062,7 +5065,7 @@ module.exports = {
       // Look for a blank line above the list
       const firstIndex = list.startLine - 1;
       if (!isBlankLine(lines[firstIndex - 1])) {
-        addBlankLineError(onError, lines, firstIndex);
+        addErrorContextForLine(onError, lines, firstIndex);
       }
 
       // Find the "visual" end of the list
@@ -5078,7 +5081,7 @@ module.exports = {
       // Look for a blank line below the list
       const lastIndex = endLine - 1;
       if (!isBlankLine(lines[lastIndex + 1])) {
-        addBlankLineError(onError, lines, lastIndex, lastIndex + 2);
+        addErrorContextForLine(onError, lines, lastIndex, lastIndex + 2);
       }
     }
   }
@@ -6993,6 +6996,54 @@ module.exports = {
 
 /***/ }),
 
+/***/ "../lib/md058.js":
+/*!***********************!*\
+  !*** ../lib/md058.js ***!
+  \***********************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+// @ts-check
+
+
+
+const { addErrorContextForLine, isBlankLine } = __webpack_require__(/*! ../helpers */ "../helpers/helpers.js");
+const { filterByTypes } = __webpack_require__(/*! ../helpers/micromark.cjs */ "../helpers/micromark.cjs");
+
+// eslint-disable-next-line jsdoc/valid-types
+/** @type import("./markdownlint").Rule */
+module.exports = {
+  "names": [ "MD058", "blanks-around-tables" ],
+  "description": "Tables should be surrounded by blank lines",
+  "tags": [ "table" ],
+  "parser": "micromark",
+  "function": function MD058(params, onError) {
+    // eslint-disable-next-line jsdoc/valid-types
+    /** @type import("../helpers/micromark.cjs").Token[] */
+    const micromarkTokens =
+      // @ts-ignore
+      params.parsers.micromark.tokens;
+    const { lines } = params;
+    // For every table...
+    const tables = filterByTypes(micromarkTokens, [ "table" ]);
+    for (const table of tables) {
+      // Look for a blank line above the list
+      const firstIndex = table.startLine - 1;
+      if (!isBlankLine(lines[firstIndex - 1])) {
+        addErrorContextForLine(onError, lines, firstIndex);
+      }
+      // Look for a blank line below the list
+      const lastIndex = table.endLine - 1;
+      if (!isBlankLine(lines[lastIndex + 1])) {
+        addErrorContextForLine(onError, lines, lastIndex, lastIndex + 2);
+      }
+    }
+  }
+};
+
+
+/***/ }),
+
 /***/ "../lib/rules.js":
 /*!***********************!*\
   !*** ../lib/rules.js ***!
@@ -7057,8 +7108,9 @@ const rules = [
   __webpack_require__(/*! ./md053 */ "../lib/md053.js"),
   __webpack_require__(/*! ./md054 */ "../lib/md054.js"),
   __webpack_require__(/*! ./md055 */ "../lib/md055.js"),
-  __webpack_require__(/*! ./md056 */ "../lib/md056.js")
+  __webpack_require__(/*! ./md056 */ "../lib/md056.js"),
   // md057: See https://github.com/markdownlint/markdownlint
+  __webpack_require__(/*! ./md058 */ "../lib/md058.js")
 ];
 for (const rule of rules) {
   const name = rule.names[0].toLowerCase();
