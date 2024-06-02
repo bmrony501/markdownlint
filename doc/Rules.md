@@ -2493,8 +2493,21 @@ Some text
 > Blockquote
 ```
 
-Rationale: In addition to aesthetic reasons, some parsers will not parse tables
-that don't have blank lines before and after them.
+Note that text immediately following a table (i.e., not separated by an empty
+line) is treated as part of the table (per the specification) and will not
+trigger this rule:
+
+```markdown
+| Header | Header |
+| ------ | ------ |
+| Cell   | Cell   |
+This text is part of the table and the next line is blank
+
+Some text
+```
+
+Rationale: In addition to aesthetic reasons, some parsers will incorrectly parse
+tables that don't have blank lines before and after them.
 
 <!-- markdownlint-configure-file {
   "no-inline-html": {
